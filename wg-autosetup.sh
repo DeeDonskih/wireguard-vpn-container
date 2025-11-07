@@ -31,6 +31,15 @@ else
   CLIENT_DIR="${CLIENT_DIR_DEFAULT}"
 fi
 
+validate_name () {
+  local cname="$1"
+  [[ -n "$cname" ]] || { echo "Name validator: input is empty"; return 1; }
+  if [[ ! "$cname" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+      echo "Error: Client name must contain only alphanumeric characters, - and _"
+      return 1
+  fi
+}
+
 need_root() { [ "${EUID:-0}" -eq 0 ] || { echo "Run with sudo/root"; exit 1; }; }
 need_ubuntu() { :; }  # Distribution check not critical in container
 
@@ -129,6 +138,7 @@ next_client_ip() {
 add_client() {
   local name="$1"
   [[ -n "$name" ]] || { echo "Client name not specified"; exit 1; }
+  validate_name "$name" || { echo "Client name invalid"; exit 1; }
   umask 077
   mkdir -p "$CLIENT_DIR"
 
@@ -185,6 +195,7 @@ _show_url_and_qr() {
 
 show_qr() {
   local name="$1"
+  validate_name "$name" || { echo "Client name: \"$name\" - invalid"; exit 1; }
   [[ -f "${CLIENT_DIR}/${name}.conf" ]] || { echo "No ${CLIENT_DIR}/${name}.conf"; exit 1; }
   echo "=== QR for ${name} ==="
   qrencode -t ansiutf8 < "${CLIENT_DIR}/${name}.conf"
@@ -214,6 +225,7 @@ list_clients() {
 delete_client() {
   local name="$1"
   [[ -n "$name" ]] || { echo "Specify client name"; exit 1; }
+  validate_name "$name" || { echo "Client name invalid"; exit 1; }
   [[ -f "${WG_DIR}/${WG_IF}.conf" ]] || { echo "${WG_DIR}/${WG_IF}.conf not found"; exit 1; }
 
   local pub
